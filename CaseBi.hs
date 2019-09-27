@@ -19,9 +19,9 @@ module CaseBi (
   filterP
 ) where
 
-import qualified Data.Vector as V (Vector,head,last,take,drop,length,(!),fromList,map)
-import qualified Data.List as L (groupBy)
-import Prelude
+import qualified Data.Vector as V (Vector,unsafeHead,unsafeLast,unsafeTake,unsafeDrop,length,(!),fromList,map)
+import qualified Data.List as L (groupBy,nubBy)
+--import Prelude
 -- (Bool,Eq,Ord,map,(>=),(<=),(>),(<),(==),(&&),(.),(++),(-),($),filter,otherwise,fst,snd,div,not,null,dropWhile,concatMap,take,seq,undefined)
 
 -- | The function that can be used instead of the 'case ... of' function
@@ -36,7 +36,7 @@ import Prelude
 -- 
 -- The function 'case a of ...' gives the /O(n)/ coplexity of the transformation of a to b here, 
 -- but the function getBFst' tries to give about /O(log n)/ complexity 
--- The Vector v (a, b) must be sorted in ascending order here for the algorithm to be used correctly. For this you can use 
+-- The Vector (a, b) must be sorted in ascending order here for the algorithm to be used correctly. For this you can use 
 -- the following functions 'sortFst' and 'sortFstV'. 
 -- 
 -- b before Vector (a, b) in the type definition of the 'getBFst' must be a @defaultValue@ for 'case' above. 
@@ -50,7 +50,8 @@ import Prelude
 -- >  an -> bn
 -- 
 getBFst' :: (Ord a) => b -- ^ a default value that can be substituted if there is no correspendence in the set of (a, b) tuples (the 'otherwise' or irrefutable pattern analogue)
-  -> V.Vector (a, b) -- ^ Vector of the (a, b) tuples that must be sorted in ascending order for the first argument. If there are several pairs (a, b) with the same a, the function gives a resulting b as if there is only the first one
+  -> V.Vector (a, b) -- ^ Vector of the (a, b) tuples that must be sorted in ascending order for the first argument. If there are several pairs (a, b) with the same a, 
+  -- ^ the function gives a resulting b as if there is only the first one
   -> a -- ^ an element for which the corresponding resulting b must be found
   -> b -- ^ the result
 getBFst' def vec l | (l < vElem0 vec) || (l > vElemL vec) = def
@@ -58,25 +59,25 @@ getBFst' def vec l | (l < vElem0 vec) || (l > vElemL vec) = def
   then getBFst' def v1 l 
   else getBFst' def v2 l
                    | (vIL vec == 2) = if l == vElem0 vec
-  then snd . V.head $ vec
+  then snd . V.unsafeHead $ vec
   else if l == vElem1 vec
          then snd $ vec V.! 1
          else if l == vElemL vec
-                then snd . V.last $ vec
+                then snd . V.unsafeLast $ vec
                 else def
                    | (vIL vec == 1) = if l == vElem0 vec
-  then snd . V.head $ vec
+  then snd . V.unsafeHead $ vec
   else if l == vElemL vec
-         then snd . V.last $ vec
+         then snd . V.unsafeLast $ vec
          else def
-                   | (vIL vec == 0) = snd . V.head $ vec
+                   | (vIL vec == 0) = snd . V.unsafeHead $ vec
                    | otherwise = def
-            where vElem0 = fst . V.head
+            where vElem0 = fst . V.unsafeHead
                   vElem1 v = fst $ v V.! 1
-                  vElemL = fst . V.last
+                  vElemL = fst . V.unsafeLast
                   vIL v = V.length v - 1
-                  v1  = V.take (V.length vec `div` 2) vec
-                  v2 = V.drop (V.length vec `div` 2) vec
+                  v1  = V.unsafeTake (V.length vec `div` 2) vec
+                  v2 = V.unsafeDrop (V.length vec `div` 2) vec
 
 -- | The function that uses special kind of bisection to effectively transform the Vector a to Vector b with  instead of simply use 
 --
@@ -161,8 +162,10 @@ sortFst xs | not . null $ xs = let z = fst . head $ xs in sortFst (filter (\(x, 
 --
 -- for usage in the 'getBFst' and 'getBFstV' functions. @a@ must be an instance of class Ord.
 --
+-- The resulting vector has for every @a@ only one element, which was the first in the list of tuples (a, b) after sorting by 'sortFst' function.
+--
 sortFstV :: (Ord a) => [(a, b)] -> V.Vector (a, b)
-sortFstV = V.fromList . sortFst
+sortFstV = V.fromList . L.nubBy (\x y -> fst x == fst y) . sortFst
 
 -- | The function that is used to filter a list [(a, b)] of the corresponding values for getFstB' to obtain the Vector (a, b) 
 -- such that the b element for the sequence of pairs (a, b) with the same a is selected by the predicate p and is not necessarily the first one 
