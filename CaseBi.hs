@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+--{-# LANGUAGE BangPatterns #-}
 
 module CaseBi (
 -- * Function that can be used instead of 
@@ -19,10 +19,10 @@ module CaseBi (
   filterP
 ) where
 
-import qualified Data.Vector as V (Vector,unsafeHead,unsafeLast,unsafeTake,unsafeDrop,length,(!),fromList,map)
+import qualified Data.Vector as V (Vector,unsafeHead,unsafeLast,unsafeSlice,length,(!),fromList,map)
 import qualified Data.List as L (groupBy,nubBy)
 --import Prelude
--- (Bool,Eq,Ord,map,(>=),(<=),(>),(<),(==),(&&),(.),(++),(-),($),filter,otherwise,fst,snd,div,not,null,dropWhile,concatMap,take,seq,undefined)
+-- (Bool,Eq,Ord,map,(>=),(<=),(>),(<),(==),(&&),(.),(++),(-),($),filter,otherwise,fst,snd,quot,not,null,dropWhile,concatMap,take,seq,undefined)
 
 -- | The function that can be used instead of the 'case ... of' function
 --
@@ -54,31 +54,12 @@ getBFst' :: (Ord a) => b -- ^ a default value that can be substituted if there i
   -- ^ the function gives a resulting b as if there is only the first one
   -> a -- ^ an element for which the corresponding resulting b must be found
   -> b -- ^ the result
-getBFst' def vec l | (l < vElem0 vec) || (l > vElemL vec) = def
-                   | (vIL vec >= 3) = if l <= fst (vec V.! (vIL vec `div` 2))
-  then getBFst' def v1 l 
-  else getBFst' def v2 l
-                   | (vIL vec == 2) = if l == vElem0 vec
-  then snd . V.unsafeHead $ vec
-  else if l == vElem1 vec
-         then snd $ vec V.! 1
-         else if l == vElemL vec
-                then snd . V.unsafeLast $ vec
-                else def
-                   | (vIL vec == 1) = if l == vElem0 vec
-  then snd . V.unsafeHead $ vec
-  else if l == vElemL vec
-         then snd . V.unsafeLast $ vec
-         else def
-                   | (vIL vec == 0) = snd . V.unsafeHead $ vec
-                   | otherwise = def
-            where vElem0 = fst . V.unsafeHead
-                  vElem1 v = fst $ v V.! 1
-                  vElemL = fst . V.unsafeLast
-                  vIL v = V.length v - 1
-                  v1  = V.unsafeTake (V.length vec `div` 2) vec
-                  v2 = V.unsafeDrop (V.length vec `div` 2) vec
-
+getBFst' def vec l | if (l < (fst (V.unsafeHead vec))) then True else (l > (fst (V.unsafeLast vec))) = def
+                   | (V.length vec >= 2) = if l <= fst (vec V.! (V.length vec `quot` 2))
+  then getBFst' def (V.unsafeSlice 0 (V.length vec `quot` 2) vec) l 
+  else getBFst' def (V.unsafeSlice (V.length vec `quot` 2) (V.length vec - (V.length vec `quot` 2)) vec) l 
+                   | otherwise = snd (V.unsafeHead vec)
+                   
 -- | The function that uses special kind of bisection to effectively transform the Vector a to Vector b with  instead of simply use 
 --
 -- > case var of
