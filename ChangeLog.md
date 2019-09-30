@@ -18,4 +18,9 @@ Moreover, fixed constraints in cabal file. Make more exact the vector usage.
 * First version revised D. Some performance improvements and changing the documentation.
 The benchmark testing continues.
 
+## 0.1.6.0 -- 2019-09-30
+
+* First version revised E. Some performance improvements and changing the documentation.
+The benchmark testing continues.
+
 
